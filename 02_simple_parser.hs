@@ -1,6 +1,7 @@
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad
+import Numeric (readOct, readHex)
 
 data LispVal = Atom String
   | List [LispVal]
@@ -8,11 +9,21 @@ data LispVal = Atom String
   | Number Integer
   | String String
   | Bool Bool
+
+escapedChar :: Parser Char
+escapedChar = do
+    char '\\'
+    c <- oneOf ['\\', '"', 'n', 'r', 't']
+    return $ case c of
+        '\\' -> c
+        '"' -> '\n'
+        'r' -> '\r'
+        't' -> '\t'
   
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- many (noneOf "\"")
+  x <- many (escapedChar <|> noneOf ['\\', '"'])
   char '"'
   return $ String x
   
@@ -30,7 +41,6 @@ parseNumber :: Parser LispVal
 parseNumber = do
   x <- many1 digit
   return $ (Number . read) x
---parseNumber = liftM (Number . read) $ many1 digit
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
